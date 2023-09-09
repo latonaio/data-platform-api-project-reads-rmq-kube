@@ -21,6 +21,7 @@ func (c *DPFMAPICaller) readSqlProcess(
 ) interface{} {
 	var project *dpfm_api_output_formatter.Project
 	var wBSElement *dpfm_api_output_formatter.WBSElement
+	var network *dpfm_api_output_formatter.Network
 	for _, fn := range accepter {
 		switch fn {
 		case "Project":
@@ -39,6 +40,10 @@ func (c *DPFMAPICaller) readSqlProcess(
 			func() {
 				wBSElement = c.WBSElement(mtx, input, output, errs, log)
 			}()
+		case "Network":
+			func() {
+				network = c.Network(mtx, input, output, errs, log)
+			}()
 		default:
 		}
 	}
@@ -46,6 +51,7 @@ func (c *DPFMAPICaller) readSqlProcess(
 	data := &dpfm_api_output_formatter.Message{
 		Project:    project,
 		WBSElement: wBSElement,
+		Network:	network,
 	}
 
 	return data
@@ -60,12 +66,8 @@ func (c *DPFMAPICaller) Project(
 ) *[]dpfm_api_output_formatter.Project {
 	where := "WHERE 1 = 1"
 
-	if input.Project.BusinessPartner != nil {
-		where = fmt.Sprintf("%s\nAND BusinessPartner = %v", where, *input.Project.BusinessPartner)
-	}
-
 	if input.Project.Project != nil {
-		where = fmt.Sprintf("%s\nAND Project = \"%s\"", where, *input.Project.Project)
+		where = fmt.Sprintf("%s\nAND Project = %d", where, *input.Project.Project)
 	}
 
 	if input.Project.IsMarkedForDeletion != nil {
@@ -185,18 +187,21 @@ func (c *DPFMAPICaller) WBSElement(
 	errs *[]error,
 	log *logger.Logger,
 ) *dpfm_api_output_formatter.WBSElement {
-	project := input.Project.Project
-	businessPartner := input.Project.BusinessPartner
-	wBSElement := input.Project.WBSElement.WBSElement
+	where := "WHERE 1 = 1"
 
+	if input.Project.Project != nil {
+		where = fmt.Sprintf("%s\nAND Project = %d", where, *input.Project.Project)
+	}
+	if input.Project.WBSElement != nil {
+		where = fmt.Sprintf("%s\nAND WBSElement = %d", where, *input.Project.WBSElement.WBSElement)
+	}
+	if input.Project.WBSElement.IsMarkedForDeletion != nil {
+		where = fmt.Sprintf("%s\nAND IsMarkedForDeletion = %t", where, *input.Project.WBSElement.IsMarkedForDeletion)
+	}
 	rows, err := c.db.Query(
-		`SELECT BusinessPartner, Project, WBSElement,
-		WBSElementFullName, WBSElementName,
-		WBSElementIDByExtSystem, 
-		CreationDate, LastChangeDate,
-		IsMarkedForDeletion
+		`SELECT *
 		FROM DataPlatformMastersAndTransactionsMysqlKube.data_platform_project_wbs_element_data
-		WHERE (BusinessPartner, Project, WBSElement) = (?, ?, ?);`, businessPartner, project, wBSElement,
+		` + where + `;`,
 	)
 	if err != nil {
 		*errs = append(*errs, err)
@@ -205,6 +210,47 @@ func (c *DPFMAPICaller) WBSElement(
 	defer rows.Close()
 
 	data, err := dpfm_api_output_formatter.ConvertToWBSElement(input, rows)
+	if err != nil {
+		*errs = append(*errs, err)
+		return nil
+	}
+
+	return data
+}
+
+func (c *DPFMAPICaller) Network(
+	mtx *sync.Mutex,
+	input *dpfm_api_input_reader.SDC,
+	output *dpfm_api_output_formatter.SDC,
+	errs *[]error,
+	log *logger.Logger,
+) *dpfm_api_output_formatter.Network {
+	where := "WHERE 1 = 1"
+
+	if input.Project.Project != nil {
+		where = fmt.Sprintf("%s\nAND Project = %d", where, *input.Project.Project)
+	}
+	if input.Project.WBSElement != nil {
+		where = fmt.Sprintf("%s\nAND WBSElement = %d", where, *input.Project.WBSElement.WBSElement)
+	}
+	if input.Project.WBSElement.Network != nil {
+		where = fmt.Sprintf("%s\nAND Network = %d", where, *input.Project.WBSElement.Network.Network)
+	}
+	if input.Project.WBSElement.Network.IsMarkedForDeletion != nil {
+		where = fmt.Sprintf("%s\nAND IsMarkedForDeletion = %t", where, *input.Project.WBSElement.Network.IsMarkedForDeletion)
+	}
+	rows, err := c.db.Query(
+		`SELECT *
+		FROM DataPlatformMastersAndTransactionsMysqlKube.data_platform_project_network_data
+		` + where + `;`,
+	)
+	if err != nil {
+		*errs = append(*errs, err)
+		return nil
+	}
+	defer rows.Close()
+
+	data, err := dpfm_api_output_formatter.ConvertToNetwork(input, rows)
 	if err != nil {
 		*errs = append(*errs, err)
 		return nil

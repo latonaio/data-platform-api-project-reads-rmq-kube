@@ -18,8 +18,9 @@ APIサービス URL: https://xxx.xxx.io/api/API_PROJECT_SRV/reads/
 ## 本レポジトリ に 含まれる API名
 data-platform-api-project-reads-rmq-kube には、次の API をコールするためのリソースが含まれています。  
 
-* A_Project（データ連携基盤 プロジェクト - 基本データ）
-* A_WBSElement（データ連携基盤 プロジェクト - WBS要素データ）
+* A_Project（プロジェクト - 基本データ）
+* A_WBSElement（プロジェクト - WBS要素データ）
+* A_Network（プロジェクト - ネットワークデータ）
 
 ## API への 値入力条件 の 初期値
 data-platform-api-project-reads-rmq-kube において、API への値入力条件の初期値は、入力ファイルレイアウトの種別毎に、次の通りとなっています。  
@@ -32,11 +33,11 @@ Latona および AION の データ連携基盤 関連リソースでは、Input
 * sample.jsonの記載例(1)  
 
 accepter において 下記の例のように、データの種別（＝APIの種別）を指定します。  
-ここでは、"General" が指定されています。    
+ここでは、"Project" が指定されています。    
   
 ```
 	"api_schema": "DPFMProjectReads",
-	"accepter": ["General"],
+	"accepter": ["Project"],
 ```
   
 * 全データを取得する際のsample.jsonの記載例(2)  
@@ -73,8 +74,8 @@ func (c *DPFMAPICaller) AsyncReads(
 
 ## Output  
 本マイクロサービスでは、[golang-logging-library-for-data-platform](https://github.com/latonaio/golang-logging-library-for-data-platform) により、以下のようなデータがJSON形式で出力されます。  
-以下の sample.json の例は プロジェクト の 基本データ が取得された結果の JSON の例です。  
-以下の項目のうち、"Project" ～ "IsMarkedForDeletion" は、/DPFM_API_Output_Formatter/type.go 内 の Type General {} による出力結果です。"cursor" ～ "time"は、golang-logging-library による 定型フォーマットの出力結果です。  
+以下の sample.json の例は プロジェクト の プロジェクトデータ が取得された結果の JSON の例です。  
+以下の項目のうち、"Project" ～ "IsMarkedForDeletion" は、/DPFM_API_Output_Formatter/type.go 内 の Type Project {} による出力結果です。"cursor" ～ "time"は、golang-logging-library による 定型フォーマットの出力結果です。  
 
 ```
 XXX
